@@ -42,7 +42,11 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 //.anyRequest().authenticated()
                 .and()
                 .formLogin()
-                .loginPage("/api/login").permitAll();
+                .loginProcessingUrl("/signin")
+                .loginPage("/api/login")
+                .usernameParameter("user")
+                .passwordParameter("pass")
+                .permitAll();
     }
 
     @Bean

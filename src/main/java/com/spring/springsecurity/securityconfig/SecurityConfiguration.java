@@ -37,11 +37,12 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/profile").authenticated()
                 .antMatchers("/api/admin/**").hasRole("ADMIN")
                 .antMatchers("/api/manage").hasAnyRole("ADMIN","MANGER")
-                .antMatchers("/api/basic/mybasic").hasAuthority("ACCESS_BASIC1")
-                .antMatchers("/api/basic/allbasic").hasAuthority("ACCESS_BASIC2")
+                .antMatchers("/api/basic/mybasic").hasAuthority("ACCESS_API")
+                .antMatchers("/api/basic/allbasic").hasAuthority("ACCESS_BASIC")
                 //.anyRequest().authenticated()
                 .and()
-                .httpBasic();
+                .formLogin()
+                .loginPage("/api/login").permitAll();
     }
 
     @Bean

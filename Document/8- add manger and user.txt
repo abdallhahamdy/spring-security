@@ -1,0 +1,244 @@
+-------------------------------------------------------------------------DBInit.java---------------------------------------------------------------------------------
+
+package com.spring.springsecurity.db;
+import com.spring.springsecurity.dao.AuthoritiesRepository;
+import com.spring.springsecurity.dao.RoleRepository;
+import com.spring.springsecurity.dao.UserRepository;
+import com.spring.springsecurity.model.Authorities;
+import com.spring.springsecurity.model.Role;
+import com.spring.springsecurity.model.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Service;
+import java.util.Set;
+@Service
+public class DBInit implements CommandLineRunner {
+    private UserRepository userRepository;
+    private RoleRepository roleRepository;
+    private AuthoritiesRepository authoritiesRepository;
+    @Autowired
+    public DBInit(UserRepository userRepository, RoleRepository roleRepository, AuthoritiesRepository authoritiesRepository) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.authoritiesRepository = authoritiesRepository;
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        this.userRepository.deleteAll();
+        User admin = new User("ahmed","ahmed123","20","alex",1);
+        admin.setRoles(this.roleRepository.findAll());
+        admin.setAuthorities(this.authoritiesRepository.findAll());
+        userRepository.save(admin);
+        ///////////////////////////////////////////////////////////////////
+        User manger = new User("yasser","yasser123","20","alex",1);
+        Role mangerRoles1 = roleRepository.findById(2L).get();
+        Role mangerRoles2 = roleRepository.findById(3L).get();
+        Authorities mangerAuthorities1 = authoritiesRepository.findById(2L).get();
+        Authorities mangerAuthorities2 = authoritiesRepository.findById(3L).get();
+        manger.getRoles().add(mangerRoles1);
+        manger.getRoles().add(mangerRoles2);
+        manger.getAuthorities().add(mangerAuthorities1);
+        manger.getAuthorities().add(mangerAuthorities2);
+        userRepository.save(manger);
+        ////////////////////////////////////////////////////////////////
+        User user = new User("karim","karim123","20","alex",1);
+        Role userRoles = roleRepository.findById(3L).get();
+        Authorities userAuthorities = authoritiesRepository.findById(3L).get();
+        user.getRoles().add(userRoles);
+        user.getAuthorities().add(userAuthorities);
+        userRepository.save(user);
+    }
+}
+
+-----------------------------------------------------------------------Authorities.java--------------------------------------------------------------------------------------
+
+package com.spring.springsecurity.model;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import javax.persistence.*;
+
+@Entity
+@Table(name = "authorities")
+public class Authorities {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @Column(name = "authoritie_name")
+    private String authoritieName;
+
+    @ManyToMany(mappedBy = "authorities")
+    private List<User> users = new ArrayList<>();
+
+    public Authorities() {
+    }
+    public Authorities(String authoritieName) {
+        this.authoritieName = authoritieName;
+    }
+    public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+        this.id = id;
+    }
+    public String getAuthoritieName() {
+        return authoritieName;
+    }
+    public void setAuthoritieName(String authoritieName) {
+        this.authoritieName = authoritieName;
+    }
+    public List<User> getUsers() {
+        return users;
+    }
+    public void setUsers(List<User> users) {
+        this.users = users;
+    }
+}
+
+----------------------------------------------------------------------------------Role.java--------------------------------------------------------------------------------------
+
+package com.spring.springsecurity.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.persistence.*;
+
+@Entity
+@Table(name = "roles")
+public class Role {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @Column(name = "role_name")
+    private String roleName;
+
+    @ManyToMany(mappedBy = "roles")
+    private List<User> users = new ArrayList<>();
+
+    public Role() {
+    }
+    public Role(String roleName) {
+        this.roleName = roleName;
+    }
+    public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+        this.id = id;
+    }
+    public String getRoleName() {
+        return roleName;
+    }
+    public void setRoleName(String roleName) {
+        this.roleName = roleName;
+    }
+    public List<User> getUsers() {
+        return users;
+    }
+    public void setUsers(List<User> users) {
+        this.users = users;
+    }
+}
+
+----------------------------------------------------------------User.java-------------------------------------------------------------------------------------------
+
+package com.spring.springsecurity.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.persistence.*;
+
+@Entity
+@Table(name = "user")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @Column(name = "user_name")
+    private String userName;
+    @Column(name = "password")
+    private String password;
+    @Column(name = "age")
+    private String age;
+    @Column(name = "address")
+    private String address;
+    @Column(name = "active")
+    private int active;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = {@JoinColumn(name = "user_id")},
+            inverseJoinColumns ={ @JoinColumn(name = "role_id")}
+    )
+    private List<Role> roles = new ArrayList<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "user_authorities",
+            joinColumns = {@JoinColumn(name = "user_id")},
+            inverseJoinColumns ={ @JoinColumn(name = "authorities_id")}
+    )
+    private List<Authorities> authorities = new ArrayList<>();
+
+    public User() {
+    }
+    public User(String userName, String password, String age, String address, int active) {
+        this.userName = userName;
+        this.password = password;
+        this.age = age;
+        this.address = address;
+        this.active = active;
+    }
+    public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+        this.id = id;
+    }
+    public String getUserName() {
+        return userName;
+    }
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+    public String getPassword() {
+        return password;
+    }
+    public void setPassword(String password) {
+        this.password = password;
+    }
+    public String getAge() {
+        return age;
+    }
+    public void setAge(String age) {
+        this.age = age;
+    }
+    public String getAddress() {
+        return address;
+    }
+    public void setAddress(String address) {
+        this.address = address;
+    }
+    public int getActive() {
+        return active;
+    }
+    public void setActive(int active) {
+        this.active = active;
+    }
+    public List<Role> getRoles() {
+        return roles;
+    }
+    public void setRoles(List<Role> roles) {
+        this.roles = roles;
+    }
+    public List<Authorities> getAuthorities() {
+        return authorities;
+    }
+    public void setAuthorities(List<Authorities> authorities) {
+        this.authorities = authorities;
+    }
+}

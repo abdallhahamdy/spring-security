@@ -1,0 +1,210 @@
+-------------------------------------------------------------DBInit.java---------------------------------------------------------------------------------------------------
+
+package com.spring.springsecurity.db;
+import com.spring.springsecurity.dao.AuthoritiesRepository;
+import com.spring.springsecurity.dao.UserRepository;
+import com.spring.springsecurity.model.Authorities;
+import com.spring.springsecurity.model.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+@Service
+public class DBInit implements CommandLineRunner {
+    private UserRepository userRepository;
+    private AuthoritiesRepository authoritiesRepository;
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    public DBInit(UserRepository userRepository, AuthoritiesRepository authoritiesRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.authoritiesRepository = authoritiesRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+     public DBInit(UserRepository userRepository, AuthoritiesRepository authoritiesRepository) {
+        this.userRepository = userRepository;
+        this.authoritiesRepository = authoritiesRepository;
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        /*this.userRepository.deleteAll();
+        User admin = new User("ahmed", passwordEncoder.encode( "ahmed123"),"20","alex",1);
+        admin.setAuthorities(this.authoritiesRepository.findAll());
+        userRepository.save(admin);
+        ///////////////////////////////////////////////////////////////////
+        User manger = new User("yasser",passwordEncoder.encode("yasser123"),"20","alex",1);
+        Authorities mangerAuthorities1 = authoritiesRepository.findById(2L).get();
+        Authorities mangerAuthorities2 = authoritiesRepository.findById(3L).get();
+        Authorities mangerAuthorities3 = authoritiesRepository.findById(5L).get();
+        Authorities mangerAuthorities4 = authoritiesRepository.findById(6L).get();
+        manger.getAuthorities().add(mangerAuthorities1);
+        manger.getAuthorities().add(mangerAuthorities2);
+        manger.getAuthorities().add(mangerAuthorities3);
+        manger.getAuthorities().add(mangerAuthorities4);
+        userRepository.save(manger);
+        ////////////////////////////////////////////////////////////////
+        User user = new User("karim",passwordEncoder.encode("karim123"),"20","alex",1);
+        Authorities userAuthorities = authoritiesRepository.findById(3L).get();
+        Authorities userAuthorities2 = authoritiesRepository.findById(6L).get();
+        user.getAuthorities().add(userAuthorities2);
+        userRepository.save(user);*/
+    }
+}
+
+----------------------------------------------------------------------------UserPrincipal.java---------------------------------------------------------------
+
+package com.spring.springsecurity.model;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+public class UserPrincipal implements UserDetails {
+    private User user;
+    @Autowired
+    public UserPrincipal(User user) {
+        this.user = user;
+    }
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        this.user.getAuthorities().forEach(p -> {
+            GrantedAuthority authority = new SimpleGrantedAuthority(p.getAuthoritieName());
+            authorities.add(authority);
+        });
+        return authorities;
+    }
+    @Override
+    public String getPassword() {
+        return this.user.getPassword();
+    }
+    @Override
+    public String getUsername() {
+        return this.user.getUserName();
+    }
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        try {
+            return this.user.getActive() == 1;
+        }catch (Exception e){
+            return false;
+        }
+    }
+}
+
+----------------------------------------------------------------------------SecurityConfiguration.java----------------------------------------------------------------------
+
+package com.spring.springsecurity.securityconfig;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+@Configuration
+@EnableWebSecurity
+public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+    private UserPrincipalDetailsService userPrincipalDetailsService;
+    @Autowired
+    public SecurityConfiguration(UserPrincipalDetailsService userPrincipalDetailsService) {
+        this.userPrincipalDetailsService = userPrincipalDetailsService;
+    }
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.authenticationProvider(authenticationProvider());
+    }
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .authorizeRequests()
+                .antMatchers("/api/main").permitAll()
+                .antMatchers("/api/profile").authenticated()
+                .antMatchers("/api/admin/**").hasRole("ADMIN")
+                .antMatchers("/api/manage").hasAnyRole("ADMIN","MANGER")
+                .antMatchers("/api/basic/mybasic").hasAuthority("ACCESS_API")
+                .antMatchers("/api/basic/allbasic").hasAuthority("ACCESS_BASIC")
+                //.anyRequest().authenticated()
+                .and()
+                .formLogin()
+                .loginPage("/api/login").permitAll();
+    }
+
+    @Bean
+    DaoAuthenticationProvider authenticationProvider(){
+        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
+        daoAuthenticationProvider.setUserDetailsService(userPrincipalDetailsService);
+        return daoAuthenticationProvider;
+    }
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
+
+---------------------------------------------------------------------login.html---------------------------------------------------------------------------------
+
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="fragments.html :: headerfiles">
+    <title>Log in</title>
+</head>
+<body>
+<div class="container">
+    <div style="width:600px;margin-left: auto;margin-right: auto;margin-top:24px;padding: 24px;">
+        <div class="card">
+            <div class="card-header">
+                <i class="fa fa-user"></i> Please Login
+            </div>
+            <div class="card-block" style="padding: 24px;">
+                <form name="f" th:action="@{/api/login}" method="post">
+                    <fieldset>
+
+                        <div th:if="${param.error}" class="alert alert-danger">
+                            Invalid username and password
+                        </div>
+
+                        <!-- Login Controls -->
+                        <div class="form-group">
+                            <label for="txtUsername">Username</label>
+                            <input type="text" class="form-control" id="txtUsername" name="username"
+                                   placeholder="Username">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="txtPassword">Password</label>
+                            <input type="password" class="form-control" id="txtPassword" name="password"
+                                   placeholder="Password">
+                        </div>
+
+                        <!-- Login Button -->
+                        <div class="form-actions" style="margin-top: 12px;">
+                            <button type="submit" class="btn btn-success">Log in</button>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

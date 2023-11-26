@@ -1,0 +1,165 @@
+---------------------------------------------------------UserRepository.java---------------------------------------------------------------------------------
+
+package com.spring.springsecurity.dao;
+import com.spring.springsecurity.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    User findByUserName(String userName);
+}
+
+--------------------------------------------------------DBInit.java--------------------------------------------------------------------------------------
+
+package com.spring.springsecurity.db;
+import com.spring.springsecurity.dao.AuthoritiesRepository;
+import com.spring.springsecurity.dao.RoleRepository;
+import com.spring.springsecurity.dao.UserRepository;
+import com.spring.springsecurity.model.Authorities;
+import com.spring.springsecurity.model.Role;
+import com.spring.springsecurity.model.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Service;
+import java.util.Set;
+@Service
+public class DBInit implements CommandLineRunner {
+    private UserRepository userRepository;
+    private RoleRepository roleRepository;
+    private AuthoritiesRepository authoritiesRepository;
+    @Autowired
+    public DBInit(UserRepository userRepository, RoleRepository roleRepository, AuthoritiesRepository authoritiesRepository) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.authoritiesRepository = authoritiesRepository;
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        User user = userRepository.findByUserName("karim");
+        System.out.println(user.getAddress());
+        /*this.userRepository.deleteAll();
+        User admin = new User("ahmed","ahmed123","20","alex",1);
+        admin.setRoles(this.roleRepository.findAll());
+        admin.setAuthorities(this.authoritiesRepository.findAll());
+        userRepository.save(admin);
+        ///////////////////////////////////////////////////////////////////
+        User manger = new User("yasser","yasser123","20","alex",1);
+        Role mangerRoles1 = roleRepository.findById(2L).get();
+        Role mangerRoles2 = roleRepository.findById(3L).get();
+        Authorities mangerAuthorities1 = authoritiesRepository.findById(2L).get();
+        Authorities mangerAuthorities2 = authoritiesRepository.findById(3L).get();
+        manger.getRoles().add(mangerRoles1);
+        manger.getRoles().add(mangerRoles2);
+        manger.getAuthorities().add(mangerAuthorities1);
+        manger.getAuthorities().add(mangerAuthorities2);
+        userRepository.save(manger);
+        ////////////////////////////////////////////////////////////////
+        User user = new User("karim","karim123","20","alex",1);
+        Role userRoles = roleRepository.findById(3L).get();
+        Authorities userAuthorities = authoritiesRepository.findById(3L).get();
+        user.getRoles().add(userRoles);
+        user.getAuthorities().add(userAuthorities);
+        userRepository.save(user);*/
+    }
+}
+
+------------------------------------------------------------------------UserPrincipal.java--------------------------------------------------------------------------------------
+
+package com.spring.springsecurity.model;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+public class UserPrincipal implements UserDetails {
+
+    private User user;
+
+    @Autowired
+    public UserPrincipal(User user) {
+        this.user = user;
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        List<GrantedAuthority> authorities = new ArrayList<>();
+
+        this.user.getAuthorities().forEach(p -> {
+            GrantedAuthority authority = new SimpleGrantedAuthority(p.getAuthoritieName());
+            authorities.add(authority);
+        });
+
+        this.user.getRoles().forEach(p -> {
+            GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_"+ p.getRoleName());
+            authorities.add(authority);
+        });
+
+        return authorities;
+    }
+
+    @Override
+    public String getPassword() {
+        return this.user.getPassword();
+    }
+
+    @Override
+    public String getUsername() {
+        return this.user.getUserName();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return this.user.getActive() == 1;
+    }
+}
+
+---------------------------------------------------------------------UserPrincipalDetailsService.java---------------------------------------------------------------------------------
+
+package com.spring.springsecurity.securityconfig;
+
+import com.spring.springsecurity.dao.UserRepository;
+import com.spring.springsecurity.model.User;
+import com.spring.springsecurity.model.UserPrincipal;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
+public class UserPrincipalDetailsService implements UserDetailsService {
+
+    private UserRepository userRepository;
+
+    @Autowired
+    public UserPrincipalDetailsService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepository.findByUserName(username);
+        UserPrincipal userPrincipal = new UserPrincipal(user);
+        return userPrincipal;
+    }
+}

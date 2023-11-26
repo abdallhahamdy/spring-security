@@ -1,0 +1,35 @@
+-----------------------------------------------AuthoritiesRepository.java--------------------------------------------------------
+
+package com.spring.springsecurity.dao;
+
+import com.spring.springsecurity.model.Authorities;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface AuthoritiesRepository extends JpaRepository<Authorities, Long> {
+}
+
+--------------------------------------------RoleRepository.java-----------------------------------------------------------------
+
+package com.spring.springsecurity.dao;
+
+import com.spring.springsecurity.model.Role;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface RoleRepository extends JpaRepository<Role, Long> {
+}
+
+-------------------------------------------UserRepository.java------------------------------------------------------------------
+
+package com.spring.springsecurity.dao;
+
+import com.spring.springsecurity.model.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+}

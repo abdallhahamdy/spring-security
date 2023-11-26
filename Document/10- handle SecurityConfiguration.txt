@@ -1,3 +1,5 @@
+----------------------------------------------------------------SecurityConfiguration.java-------------------------------------------------------------------------------
+
 package com.spring.springsecurity.securityconfig;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,11 +9,10 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
@@ -25,6 +26,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+
         auth.authenticationProvider(authenticationProvider());
 
     }
@@ -37,17 +39,11 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/profile").authenticated()
                 .antMatchers("/api/admin/**").hasRole("ADMIN")
                 .antMatchers("/api/manage").hasAnyRole("ADMIN","MANGER")
-                .antMatchers("/api/basic/mybasic").hasAuthority("ACCESS_API")
-                .antMatchers("/api/basic/allbasic").hasAuthority("ACCESS_BASIC")
+                .antMatchers("/api/basic/mybasic").hasAuthority("ACCESS_BASIC1")
+                .antMatchers("/api/basic/allbasic").hasAuthority("ACCESS_BASIC2")
                 //.anyRequest().authenticated()
                 .and()
-                .formLogin()
-                .loginProcessingUrl("/signin")
-                .loginPage("/api/login")
-                .usernameParameter("user")
-                .passwordParameter("pass")
-                .and()
-                .logout().logoutRequestMatcher(new AntPathRequestMatcher("/logout")).logoutSuccessUrl("/api/login");
+                .httpBasic();
     }
 
     @Bean
@@ -61,5 +57,33 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+}
+
+----------------------------------------------------------UserPrincipalDetailsService .java-------------------------------------------------------------------------------
+
+package com.spring.springsecurity.securityconfig;
+import com.spring.springsecurity.dao.UserRepository;
+import com.spring.springsecurity.model.User;
+import com.spring.springsecurity.model.UserPrincipal;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserPrincipalDetailsService implements UserDetailsService {
+
+    private UserRepository userRepository;
+    @Autowired
+    public UserPrincipalDetailsService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepository.findByUserName(username);
+        UserPrincipal userPrincipal = new UserPrincipal(user);
+        return userPrincipal;
     }
 }

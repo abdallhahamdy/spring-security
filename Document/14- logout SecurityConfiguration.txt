@@ -1,0 +1,148 @@
+---------------------------------------------------------SecurityConfiguration.java-----------------------------------------------------------------------------
+
+package com.spring.springsecurity.securityconfig;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
+    private UserPrincipalDetailsService userPrincipalDetailsService;
+    public SecurityConfiguration(UserPrincipalDetailsService userPrincipalDetailsService) {
+        this.userPrincipalDetailsService = userPrincipalDetailsService;
+    }
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.authenticationProvider(authenticationProvider());
+    }
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .authorizeRequests()
+                .antMatchers("/api/main").permitAll()
+                .antMatchers("/api/profile").authenticated()
+                .antMatchers("/api/admin/**").hasRole("ADMIN")
+                .antMatchers("/api/manage").hasAnyRole("ADMIN","MANGER")
+                .antMatchers("/api/basic/mybasic").hasAuthority("ACCESS_BASIC1")
+                .antMatchers("/api/basic/allbasic").hasAuthority("ACCESS_BASIC2")
+                //.anyRequest().authenticated()
+                .and()
+                .formLogin()
+                .loginProcessingUrl("/signin")
+                .loginPage("/api/login")
+                .usernameParameter("user")
+                .passwordParameter("pass")
+                .and()
+                .logout().logoutRequestMatcher(new AntPathRequestMatcher("/logout")).logoutSuccessUrl("/api/login");
+    }
+    @Bean
+    DaoAuthenticationProvider authenticationProvider(){
+        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
+        daoAuthenticationProvider.setUserDetailsService(userPrincipalDetailsService);
+        return daoAuthenticationProvider;
+    }
+    @Bean
+    PasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
+    }
+}
+
+-------------------------------------------------------------fragments.html------------------------------------------------------------------------------------
+
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<!-- Fragment #1 : Header files contains css and js references -->
+<head th:fragment="headerfiles">
+    <title>Introduction to SpringBoot Security</title>
+    <meta charset="UTF-8"/>
+    <link th:href="@{~/bootstrap.min.css}" rel="stylesheet">
+    <link th:href="@{~/fontawesome/css/all.css}" rel="stylesheet">
+</head>
+<body>
+<!-- Fragment #2 : Navbar contains nav links -->
+<div th:fragment="nav">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">Boot Security</a>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="#" th:href="@{~/api/main}"><i class="fa fa-home"></i>Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" th:href="@{~/api/profile}">Profile</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" th:href="@{~/api/admin}">Admin</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" th:href="@{~/api/manage}">Management</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" th:href="@{~/api/admin/myadmin}">myAdmin</a>
+                </li>
+            </ul>
+            <form class="form-inline my-2 my-lg-0" form-method="post" th:action="@{/logout}">
+                <button class="btn btn-outline-danger my-2 my-sm-0 btn-sm" type="submit">Logout</button>
+                <button th:href="@{~/api/login}" class="btn btn-outline-info my-2 my-sm-0 btn-sm" type="submit">Login</button>
+            </form>
+        </div>
+    </nav>
+</div>
+</body>
+</html>
+
+-----------------------------------------------------------------------------login.html------------------------------------------------------------------------------------
+
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:insert="fragments.html :: headerfiles">
+    <title>Log in</title>
+</head>
+<body>
+<div class="container">
+    <div style="width:600px;margin-left: auto;margin-right: auto;margin-top:24px;padding: 24px;">
+        <div class="card">
+            <div class="card-header">
+                <i class="fa fa-user"></i> Please Login
+            </div>
+            <div class="card-block" style="padding: 24px;">
+                <form name="f" th:action="@{/signin}" method="post">
+                    <fieldset>
+                        <div th:if="${param.error}" class="alert alert-danger">
+                            Invalid username and password
+                        </div>
+
+                        <div th:if="${param.logout}" class="alert alert-success">
+                            You have been logged out.
+                        </div>
+                        <!-- Login Controls -->
+                        <div class="form-group">
+                            <label for="txtUsername">Username</label>
+                            <input type="text" class="form-control" id="txtUsername" name="user"
+                                   placeholder="Username">
+                        </div>
+                        <div class="form-group">
+                            <label for="txtPassword">Password</label>
+                            <input type="password" class="form-control" id="txtPassword" name="pass"
+                                   placeholder="Password">
+                        </div>
+                        <!-- Login Button -->
+                        <div class="form-actions" style="margin-top: 12px;">
+                            <button type="submit" class="btn btn-success">Log in</button>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

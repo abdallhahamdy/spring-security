@@ -1,0 +1,8 @@
+1- Not all project need to JWT.
+
+	If Spring MVC and front end on same service 
+	But If it doesn't like using Angular or React 
+	We need to use JWT because there are two service.
+	
+2- JWT like cookies no need to relogin.
+
